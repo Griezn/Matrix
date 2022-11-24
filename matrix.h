@@ -1,140 +1,82 @@
 #ifndef MATRIX_H
 #define MATRIX_H
 
-#include <vector>
 #include <cassert>
+#include <array>
+#include <vector>
+#include <iterator>
+#include <cstddef>
 
-template <typename T>
-class matrix{
-    matrix(int rows, int columns);
 
-    int rows, columns;
+template<typename T, size_t X, size_t Y>
+struct Matrix{
+public:
+    /// Constructor for the Matrix class.
+    /// \param a The array tot convert to an matrix.
+    explicit Matrix(const std::array<T, X*Y> &a);
 
-    T& operator[](int i, int j);
+    /// Constructor for the Matrix class.
+    /// \param v The vector tot convert to an matrix.
+    explicit Matrix(const std::vector<T> &v);
 
-    matrix<T>& operator+(const matrix<T>& matrix1);
-    matrix<T>& operator+=(const matrix<T>& matrix1);
+    //========== OPERATORS ===========//
+    /// Operator to access a certain element in the matrix.
+    /// \param x The row of the element
+    /// \param y The column of the element
+    /// \return The element at the specified position
+    constexpr T& operator[](size_t x, size_t y);
 
-    matrix<T>& operator*(T scale);
-    matrix<T>& operator*=(T scale);
+    //========= ITERATOR ===========//
+    struct Iterator{
+        using iterator_category = std::forward_iterator_tag;
+        using differe_type = std::ptrdiff_t;
+        using value_type = T;
+        using pointer = T*;
+        using reference = T&;
 
-    matrix<T>& operator*(const matrix<T>& matrix1);
+        explicit Iterator(pointer ptr) : _ptr(ptr){}
 
-    matrix<T>& transpose();
+        reference operator*()const {return *_ptr;}
+        pointer operator->() {return _ptr;}
 
-    T determinant();
+        Iterator& operator++() { _ptr++; return *this; }
+        Iterator operator++(int) { Iterator tmp = *this; ++(*this); return tmp; }
 
-    void vectorToMatrix(std::vector<T> vector);
+        friend bool operator== (const Iterator& a, const Iterator& b) { return a._ptr == b._ptr; };
+        friend bool operator!= (const Iterator& a, const Iterator& b) { return a._ptr != b._ptr; };
+
+    private:
+        pointer _ptr;
+    };
+
+    Iterator begin() {return Iterator(&_a[0]);}
+    Iterator end() {return Iterator(&_a[X*Y]);}
 
 private:
-    std::vector<T> items;
+    std::array<T, X*Y> _a;
 };
 
-template <typename T>
-matrix<T>::matrix(int rows, int columns) : rows(rows), columns(columns) {
-    assert(rows != 0 and columns != 0);
-    items.resize(rows * columns);
-}
-
-// TODO: 99% shore this doesn't return the right value
-template<typename T>
-T &matrix<T>::operator[](int i, int j) {
-    assert(i <= rows and j <= columns);
-    return items[i*columns + j];
-}
-
-template<typename T>
-matrix<T> &matrix<T>::operator+(const matrix<T> &matrix1) {
-    assert(this->rows == matrix1.rows and this->columns == matrix1.columns);
-    matrix<T> matrix2(this->rows, this->columns);
-
-    for (int i = 0; i < this->rows; ++i) {
-        for (int j = 0; j < this->columns; ++j) {
-            matrix2[i, j] = this[i, j] + matrix1[i, j];
-        }
-    }
-
-    return *matrix2;
-}
-
-template<typename T>
-matrix<T> &matrix<T>::operator+=(const matrix<T> &matrix1) {
-    assert(this->rows == matrix1.rows and this->columns == matrix1.columns);
-
-    for (int i = 0; i < this->rows; ++i) {
-        for (int j = 0; j < this->columns; ++j) {
-            this[i, j] = this[i, j] + matrix1[i, j];
-        }
-    }
-
-    return *this;
-}
-
-template<typename T>
-matrix<T> &matrix<T>::operator*(const T scale) {
-    matrix<T> matrix1(this->rows, this->columns);
-
-    for (int i = 0; i < this->rows; ++i) {
-        for (int j = 0; j < this->columns; ++j) {
-            matrix1[i, j] = this[i, j] * scale;
-        }
-    }
-
-    return *matrix1;
-}
-
-template<typename T>
-matrix<T> &matrix<T>::operator*=(const T scale) {
-    for (int i = 0; i < this->rows; ++i) {
-        for (int j = 0; j < this->columns; ++j) {
-            this[i, j] = this[i, j] * scale;
-        }
-    }
-
-    return *this;
-}
-
-// TODO: update the indexing (not complete)
-template<typename T>
-matrix<T> &matrix<T>::operator*(const matrix<T> &matrix1) {
-    assert(this->columns == matrix1.rows);
-    matrix<T> matrix2(this->rows, matrix1.columns);
-
-    for (int i = 0; i < this; ++i) {
-        for (int j = 0; j < this; ++j) {
-            matrix2[i, j] = this[] * matrix1[];
-        }
-    }
-
-    return *matrix2;
-}
-
-template<typename T>
-matrix<T> &matrix<T>::transpose() {
-    matrix<T> matrix1(this->columns, this->rows);
-
-    for (int i = 0; i < this->rows; ++i) {
-        for (int j = 0; j < this->columns; ++j) {
-            matrix1[j, i] = this[i, j];
-        }
-    }
-
-    return *matrix1;
-}
-
-template<typename T>
-T matrix<T>::determinant() {
-    assert(this->rows == this->columns);
-    T sum;
-
-}
-
-template<typename T>
-void matrix<T>::vectorToMatrix(const std::vector<T> vector) {
-    assert(items.size() == vector.size());
-    for (auto &item : vector) {
-        items.template emplace_back(item);
+template<typename T, size_t X, size_t Y>
+Matrix<T, X, Y>::Matrix(const std::array<T, X * Y> &a) {
+    for (int i = 0; i < X * Y; ++i) {
+        this->_a[i] = a[i];
     }
 }
+
+template<typename T, size_t X, size_t Y>
+Matrix<T, X, Y>::Matrix(const std::vector<T> &v) {
+    assert(v.size() == X*Y);
+    for (int i = 0; i < X * Y; ++i) {
+        this->_a[i] = v[i];
+    }
+}
+
+template<typename T, size_t X, size_t Y>
+constexpr T &Matrix<T, X, Y>::operator[](size_t x, size_t y){
+    assert(x > 0 and x <= X);
+    assert(y > 0 and y <= Y);
+    return _a[(x - 1) * Y + (y - 1)];
+}
+
 
 #endif //MATRIX_H
